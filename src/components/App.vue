@@ -1,38 +1,78 @@
 <template>
     <Page>
-        <ActionBar title="Pokemon WebService"/>
+        <ActionBar title="PepeCam"/>
         <GridLayout columns="*" rows="*">
-            <ListView for="p in pokemon" class="list-group">
-              <v-template>
-                <StackLayout class="list-group-item">
-                  <label :text="p.name"  />
-                </StackLayout>
-              </v-template>
-            </ListView>
+            <Label class="message" :text="msg" col="0" row="0"/>
         </GridLayout>
+        <StackLayout>
+          <Button text="Tomar Foto" @tap="TomarCaptura" />
+          <Button text="Escoge una Foto" @tap="selectPicture" />
+          <WrapLayout>
+            <Image v-for="img in images" v-bind:key="img.id" :src="img.src" width="150" height="150"/>
+          </WrapLayout>
+        </StackLayout>
     </Page>
 </template>
 
 <script >
+//import * as camera from "nativescript-camera";
+import * as imagepicker from "nativescript-imagepicker";
 
-import * as http from "http";
+import { isAvailable, requestCameraPermissions, takePicture } from '@nativescript/camera';
+import { Image } from "tns-core-modules/ui/image";
 
   export default {
     data() {
       return {
-        pokemon:[]
+        images:[]
 		  }
     },
-    mounted(){
-      http.getJSON("https://pokeapi.co/api/v2/pokemon/?limit=151")
-      .then(result => {
-        this.pokemon = result.results;
-      }, error => {
-        console.log(error);
-      });
-     }
+    methods:{
+      selectPicture(){
+        let context = imagepicker.create({
+          mode: 'multiple'
+        });
 
-    };
+        context.authorize()
+        .then(function(){
+          return context.present();
+        })
+        .then(selection => {
+          selection.forEach(selected => {
+
+            console.log(JSON.stringify(selected));
+
+            let img = new Image();
+            img.src = selected;
+            this.images.push(img);
+          });
+        }).catch(function (e) {
+          console.log('error in selectPicture', e);
+        });
+
+      },
+
+      TomarCaptura() {
+        requestCameraPermissions()
+        .then(() => {
+          takePicture({ width: 300, height: 300, keepAspectRatio: true, saveToGallery:true })
+          .then(imageAsset => {
+            let img = new Image();
+            img.src = imageAsset;
+            this.images.push(img);
+            console.log('Ive got '+this.images.length+' images now.');
+          })
+          .catch(e => {
+            console.log('error:', e);
+          });
+        })
+        .catch(e => {
+          console.log('Error requesting permission');
+        });
+      },
+
+    }
+  }
 </script>
 
 <style scoped>
